@@ -4,12 +4,9 @@ A collection of CloudBees actions for interacting with CloudBees Platform Featur
 
 ## Available Actions
 
-- **`list-environments`** - List all environments in your organization
-- **`list-flags`** - List all feature flags in an application
-- **`create-flag`** - Create a new feature flag
-- **`get-flag-config`** - Get current feature flag configuration for a specific environment
-- **`set-flag-config`** - Set feature flag configuration (enable/disable, set values) for a target environment
-- **`delete-flag`** - Delete an existing feature flag
+- [fm-update-flag](https://github.com/cloudbees-days/fm-update-flag)
+- [fm-get-flag-config](https://github.com/cloudbees-days/fm-get-flag-config)
+- [fm-create-flag](https://github.com/cloudbees-days/fm-create-flag)
 
 ## Setup
 
