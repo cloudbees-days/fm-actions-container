@@ -36,40 +36,11 @@ var setFlagConfigCmd = &cobra.Command{
 		token, _ := cmd.Root().PersistentFlags().GetString("token")
 		orgID, _ := cmd.Root().PersistentFlags().GetString("org-id")
 		applicationName, _ := cmd.Root().PersistentFlags().GetString("application-name")
+		useOrgAsApp, _ := cmd.Root().PersistentFlags().GetBool("use-org-as-app")
 
-		client, err := cloudbees.NewClient(apiURL, token, orgID)
+		client, err := cloudbees.NewClientWithOptions(apiURL, token, orgID, useOrgAsApp)
 		if err != nil {
 			return fmt.Errorf("failed to create CloudBees client: %w", err)
-		}
-
-		// First, get the application to retrieve its ID
-		application, err := client.GetApplicationByName(applicationName)
-		if err != nil {
-			return fmt.Errorf("failed to get application '%s': %w", applicationName, err)
-		}
-
-		// Get the flag to retrieve its ID
-		flag, err := client.GetFlagByName(application.ID, flagName)
-		if err != nil {
-			return fmt.Errorf("failed to get flag '%s': %w", flagName, err)
-		}
-
-		// Get all environments to find the one that matches the name
-		environments, err := client.ListEnvironments()
-		if err != nil {
-			return fmt.Errorf("failed to list environments: %w", err)
-		}
-
-		var environmentID string
-		for _, env := range environments {
-			if env.Name == environmentName {
-				environmentID = env.ID
-				break
-			}
-		}
-
-		if environmentID == "" {
-			return fmt.Errorf("environment '%s' not found", environmentName)
 		}
 
 		// Build configuration map with only the fields that were specified
@@ -118,18 +89,43 @@ var setFlagConfigCmd = &cobra.Command{
 			return fmt.Errorf("no configuration changes specified")
 		}
 
-		// For dry-run, convert to FlagConfiguration struct for display
-		var newConfig cloudbees.FlagConfiguration
-		if dryRun {
-			configJSON, _ := json.Marshal(configChanges)
-			json.Unmarshal(configJSON, &newConfig)
-		}
-
+		// For dry-run, just show what would be changed and exit early
 		if dryRun {
 			fmt.Printf("DRY RUN: Would update flag '%s' in environment '%s'\n", flagName, environmentName)
 			configJSON, _ := json.MarshalIndent(configChanges, "", "  ")
 			fmt.Printf("Configuration changes:\n%s\n", configJSON)
 			return nil
+		}
+
+		// Only do API calls for real execution (not dry-run)
+		// First, get the application to retrieve its ID
+		application, err := client.GetApplicationByName(applicationName)
+		if err != nil {
+			return fmt.Errorf("failed to get application '%s': %w", applicationName, err)
+		}
+
+		// Get the flag to retrieve its ID
+		flag, err := client.GetFlagByName(application.ID, flagName)
+		if err != nil {
+			return fmt.Errorf("failed to get flag '%s': %w", flagName, err)
+		}
+
+		// Get all environments to find the one that matches the name
+		environments, err := client.ListEnvironments()
+		if err != nil {
+			return fmt.Errorf("failed to list environments: %w", err)
+		}
+
+		var environmentID string
+		for _, env := range environments {
+			if env.Name == environmentName {
+				environmentID = env.ID
+				break
+			}
+		}
+
+		if environmentID == "" {
+			return fmt.Errorf("environment '%s' not found", environmentName)
 		}
 
 		// Set flag configuration using PUT with only specified fields

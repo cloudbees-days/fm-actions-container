@@ -14,10 +14,11 @@ import (
 
 // Client represents a CloudBees Platform API client
 type Client struct {
-	baseURL    string
-	token      string
-	orgID      string
-	httpClient *http.Client
+	baseURL     string
+	token       string
+	orgID       string
+	httpClient  *http.Client
+	useOrgAsApp bool // Flag to determine if we use org ID as application ID for flags API
 }
 
 // Environment represents an environment
@@ -120,6 +121,11 @@ type ListApplicationsResponse struct {
 
 // NewClient creates a new CloudBees Platform API client
 func NewClient(baseURL, token, orgID string) (*Client, error) {
+	return NewClientWithOptions(baseURL, token, orgID, false)
+}
+
+// NewClientWithOptions creates a new CloudBees Platform API client with additional options
+func NewClientWithOptions(baseURL, token, orgID string, useOrgAsApp bool) (*Client, error) {
 	if baseURL == "" {
 		baseURL = "https://api.cloudbees.io"
 	}
@@ -131,9 +137,10 @@ func NewClient(baseURL, token, orgID string) (*Client, error) {
 	}
 
 	client := &Client{
-		baseURL: strings.TrimSuffix(baseURL, "/"),
-		token:   token,
-		orgID:   orgID,
+		baseURL:     strings.TrimSuffix(baseURL, "/"),
+		token:       token,
+		orgID:       orgID,
+		useOrgAsApp: useOrgAsApp,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -189,7 +196,12 @@ func (c *Client) ListEnvironments() ([]Environment, error) {
 
 // GetFlagByName retrieves a flag by name from the organization
 func (c *Client) GetFlagByName(applicationID, flagName string) (*Flag, error) {
-	url := fmt.Sprintf("%s/v2/applications/%s/flags/by-name/%s", c.baseURL, applicationID, flagName)
+	// Use org ID as application ID if the flag is set (legacy API), otherwise use the actual application ID
+	apiAppID := applicationID
+	if c.useOrgAsApp {
+		apiAppID = c.orgID
+	}
+	url := fmt.Sprintf("%s/v2/applications/%s/flags/by-name/%s", c.baseURL, apiAppID, flagName)
 
 	resp, err := c.makeRequest("GET", url, nil)
 	if err != nil {
@@ -212,8 +224,13 @@ func (c *Client) GetFlagByName(applicationID, flagName string) (*Flag, error) {
 
 // GetFlagConfiguration retrieves flag configuration for a specific environment
 func (c *Client) GetFlagConfiguration(applicationID, flagID, environmentID string) (*FlagConfigurationDetail, error) {
+	// Use org ID as application ID if the flag is set (legacy API), otherwise use the actual application ID
+	apiAppID := applicationID
+	if c.useOrgAsApp {
+		apiAppID = c.orgID
+	}
 	url := fmt.Sprintf("%s/v2/applications/%s/flags/%s/configuration/environments/%s",
-		c.baseURL, applicationID, flagID, environmentID)
+		c.baseURL, apiAppID, flagID, environmentID)
 
 	resp, err := c.makeRequest("GET", url, nil)
 	if err != nil {
@@ -244,8 +261,13 @@ func (c *Client) GetFlagConfiguration(applicationID, flagID, environmentID strin
 func (c *Client) UpdateFlagConfiguration(applicationID, flagID, environmentID string, config FlagConfiguration) error {
 	fmt.Printf("DEBUG: UpdateFlagConfiguration called with appID=%s, flagID=%s, envID=%s\n", applicationID, flagID, environmentID)
 
+	// Use org ID as application ID if the flag is set (legacy API), otherwise use the actual application ID
+	apiAppID := applicationID
+	if c.useOrgAsApp {
+		apiAppID = c.orgID
+	}
 	url := fmt.Sprintf("%s/v2/applications/%s/flags/%s/configuration/environments/%s",
-		c.baseURL, applicationID, flagID, environmentID)
+		c.baseURL, apiAppID, flagID, environmentID)
 
 	request := UpdateFlagConfigurationRequest{
 		Configuration: config,
@@ -272,8 +294,13 @@ func (c *Client) UpdateFlagConfiguration(applicationID, flagID, environmentID st
 
 // SetFlagConfiguration sets flag configuration using PUT with only specified fields
 func (c *Client) SetFlagConfiguration(applicationID, flagID, environmentID string, config map[string]interface{}) error {
+	// Use org ID as application ID if the flag is set (legacy API), otherwise use the actual application ID
+	apiAppID := applicationID
+	if c.useOrgAsApp {
+		apiAppID = c.orgID
+	}
 	url := fmt.Sprintf("%s/v2/applications/%s/flags/%s/configuration/environments/%s",
-		c.baseURL, applicationID, flagID, environmentID)
+		c.baseURL, apiAppID, flagID, environmentID)
 
 	// Based on user testing, the API uses PUT for partial updates (opposite to REST conventions)
 	resp, err := c.makeRequest("PUT", url, config)
@@ -292,7 +319,12 @@ func (c *Client) SetFlagConfiguration(applicationID, flagID, environmentID strin
 
 // ListFlags retrieves all flags for the application
 func (c *Client) ListFlags(applicationID string) ([]Flag, error) {
-	url := fmt.Sprintf("%s/v2/applications/%s/flags", c.baseURL, applicationID)
+	// Use org ID as application ID if the flag is set (legacy API), otherwise use the actual application ID
+	apiAppID := applicationID
+	if c.useOrgAsApp {
+		apiAppID = c.orgID
+	}
+	url := fmt.Sprintf("%s/v2/applications/%s/flags", c.baseURL, apiAppID)
 
 	resp, err := c.makeRequest("GET", url, nil)
 	if err != nil {
@@ -315,7 +347,12 @@ func (c *Client) ListFlags(applicationID string) ([]Flag, error) {
 
 // CreateFlag creates a new feature flag
 func (c *Client) CreateFlag(applicationID, name, flagType, description string, variants []string, isPermanent bool) (*Flag, error) {
-	url := fmt.Sprintf("%s/v2/applications/%s/flags", c.baseURL, applicationID)
+	// Use org ID as application ID if the flag is set (legacy API), otherwise use the actual application ID
+	apiAppID := applicationID
+	if c.useOrgAsApp {
+		apiAppID = c.orgID
+	}
+	url := fmt.Sprintf("%s/v2/applications/%s/flags", c.baseURL, apiAppID)
 
 	request := CreateFlagRequest{
 		Name:        name,
@@ -346,7 +383,12 @@ func (c *Client) CreateFlag(applicationID, name, flagType, description string, v
 
 // DeleteFlag deletes a feature flag
 func (c *Client) DeleteFlag(applicationID, flagID string) error {
-	url := fmt.Sprintf("%s/v2/applications/%s/flags/%s", c.baseURL, applicationID, flagID)
+	// Use org ID as application ID if the flag is set (legacy API), otherwise use the actual application ID
+	apiAppID := applicationID
+	if c.useOrgAsApp {
+		apiAppID = c.orgID
+	}
+	url := fmt.Sprintf("%s/v2/applications/%s/flags/%s", c.baseURL, apiAppID, flagID)
 
 	resp, err := c.makeRequest("DELETE", url, nil)
 	if err != nil {

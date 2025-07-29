@@ -17,8 +17,9 @@ var listEnvironmentsCmd = &cobra.Command{
 		apiURL, _ := cmd.Root().PersistentFlags().GetString("api-url")
 		token, _ := cmd.Root().PersistentFlags().GetString("token")
 		orgID, _ := cmd.Root().PersistentFlags().GetString("org-id")
+		useOrgAsApp, _ := cmd.Root().PersistentFlags().GetBool("use-org-as-app")
 
-		client, err := cloudbees.NewClient(apiURL, token, orgID)
+		client, err := cloudbees.NewClientWithOptions(apiURL, token, orgID, useOrgAsApp)
 		if err != nil {
 			return fmt.Errorf("failed to create CloudBees client: %w", err)
 		}

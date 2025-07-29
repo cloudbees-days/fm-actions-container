@@ -29,6 +29,8 @@ All actions require these CloudBees Platform connection details:
 - `org-id` - Your organization ID (UUID)  
 - `api-url` - CloudBees Platform API URL (defaults to `https://api.cloudbees.io`)
 
+**Note**: If you encounter 404 errors when working with flags, you may need to add `--use-org-as-app` to use the original API mode where flags are managed at the organization level.
+
 ### Getting a CloudBees Platform API Token
 
 1. Go to your CloudBees Platform user profile

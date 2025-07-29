@@ -37,23 +37,16 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	// Global flags
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.fm-actions.yaml)")
-	rootCmd.PersistentFlags().StringVar(&apiURL, "api-url", "https://api.cloudbees.io", "CloudBees Platform API URL")
-	rootCmd.PersistentFlags().StringVar(&token, "token", "", "CloudBees Platform API token (required)")
-	rootCmd.PersistentFlags().StringVar(&orgID, "org-id", "", "Organization ID (required)")
+	rootCmd.PersistentFlags().String("token", "", "CloudBees Platform API token (required)")
+	rootCmd.PersistentFlags().String("org-id", "", "Organization ID (required)")
 	rootCmd.PersistentFlags().String("application-name", "", "Application name (required)")
+	rootCmd.PersistentFlags().String("api-url", "https://api.cloudbees.io", "CloudBees Platform API URL")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
-
-	// Bind flags to viper
-	viper.BindPFlag("cloudbees.api_url", rootCmd.PersistentFlags().Lookup("api-url"))
-	viper.BindPFlag("cloudbees.token", rootCmd.PersistentFlags().Lookup("token"))
-	viper.BindPFlag("cloudbees.org_id", rootCmd.PersistentFlags().Lookup("org-id"))
-	viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
+	rootCmd.PersistentFlags().Bool("use-org-as-app", false, "Use organization ID as application ID for flags API (legacy mode)")
 
 	// Mark required flags
 	rootCmd.MarkPersistentFlagRequired("token")
 	rootCmd.MarkPersistentFlagRequired("org-id")
-	// Note: application-name is marked as required in individual commands that need it
 }
 
 // initConfig reads in config file and ENV variables if set.
